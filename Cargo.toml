@@ -1,0 +1,16 @@
+[package]
+name = "pdf-r2l-script-win"
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+description = "PDFを右綴じ(R2L・見開き右)にするWindows GUIアプリ"
+
+[dependencies]
+lopdf = "0.34"
+eframe = "0.29"
+rfd = "0.15"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
