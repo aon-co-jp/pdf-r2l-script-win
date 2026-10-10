@@ -62,6 +62,10 @@ class MainActivity : Activity() {
 
         add(label("PDF 綴じ方向変更 / PDF binding direction", 20f, true))
         add(Button(this).apply {
+            text = "画像の高解像度化 / Upscale images (FHD〜16K)"
+            setOnClickListener { startActivity(Intent(this@MainActivity, ImageActivity::class.java)) }
+        })
+        add(Button(this).apply {
             text = "PDFを選択 / Choose PDF"
             setOnClickListener {
                 startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -148,6 +152,23 @@ class MainActivity : Activity() {
             listOf("replace" to "元の書体に合わせた文字に置き換える / Replace with text in the matching typeface", "search" to "元の画像はそのまま、検索用の見えない文字だけ追加 / Keep the original image; add invisible searchable text only"),
             if (ocr.optBoolean("replace_text", true)) "replace" else "search",
         ) { ocr.put("replace_text", it == "replace"); savePrefs() })
+        ocrPanel.addView(label("AI文脈補完 / AI context completion:", 13f, true))
+        ocrPanel.addView(CheckBox(this).apply {
+            text = "かすれて読めない1〜2文字を、前後の文脈から推測して穴埋め / Guess one or two faded characters from the surrounding text"
+            isChecked = ocr.optBoolean("fill", false)
+            setOnCheckedChangeListener { _, v -> ocr.put("fill", v); savePrefs() }
+        })
+        ocrPanel.addView(label("低信頼の短い単語・欠けた文字・余計な1文字だけが対象で、長文は書き換えません。推測なので誤ることがあります。サーバーに言語モデル(例: Qwen2.5)が必要です。\nOnly low-confidence short words, missing characters and stray characters are considered; long text is never rewritten. It is a guess and can be wrong. The server needs a language model (e.g. Qwen2.5).", 11f))
+        ocrPanel.addView(label("補完サーバーURL(空ならOCRと同じ) / Completion server URL (blank = same as OCR)", 12f))
+        ocrPanel.addView(EditText(this).apply {
+            setText(ocr.optString("fill_server_url", ""))
+            setSingleLine()
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) { ocr.put("fill_server_url", s.toString().trim()); savePrefs() }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            })
+        })
         add(ocrPanel)
 
         // 変換ボタン・進捗・結果は、設定が長くても常に見えるよう、画面下に固定する。
@@ -220,6 +241,21 @@ class MainActivity : Activity() {
     /** デバッグビルド専用の試験用フック: `--es debug_input <filesDir内のPDF> --es debug_output <保存先>` で、画面を使わずに変換して結果を logcat(PDFR2L)へ出す。 */
     private fun debugRun() {
         val debuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        intent?.getStringExtra("debug_image")?.let { img ->
+            if (!debuggable) return
+            val target = intent?.getStringExtra("debug_target") ?: "fhd"
+            Thread {
+                val t = System.currentTimeMillis()
+                try {
+                    val out = Native.upscale(java.io.File(filesDir, img).readBytes(), target, intent?.getBooleanExtra("debug_ai", true) ?: true, true)
+                    java.io.File(filesDir, "$img.$target.png").writeBytes(out)
+                    android.util.Log.i("PDFR2L", "IMG DONE in " + (System.currentTimeMillis() - t) + "ms: " + Native.message().replace(Char(10), '|'))
+                } catch (e: Throwable) {
+                    android.util.Log.e("PDFR2L", "IMG FAILED: " + e.message)
+                }
+            }.start()
+            return
+        }
         val input = intent?.getStringExtra("debug_input")
         val output = intent?.getStringExtra("debug_output")
         if (!debuggable || input == null || output == null) return

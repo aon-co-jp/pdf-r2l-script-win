@@ -47,6 +47,32 @@ Releases から、お使いの OS 用のものを入手します。
 | Linux | `pdf-r2l-rs_*.deb`(Debian/Ubuntu 系)または `pdf-r2l-rs-x86_64.tar.gz` |
 | Android | `pdf-r2l-rs.apk`(署名済み。Android 8.0 以上。「提供元不明のアプリ」の許可が必要) |
 
+## 画像の高解像度化 / Upscale images (v1.1.0)
+
+**日本語**: 写真・画像(PNG/JPEG)を、**フルHD / QHD(FHDと4Kの間) / 4K / 5K(4Kと8Kの間) / 8K / 16K** の枠(縦横比を保って収める)へ拡大します。
+AI超解像(Real-ESRGAN realesr-general-x4v3、CPU)+高品質な補間。AIを使わず補間のみも選べます。使うかどうかは利用者の自由で、元の画像は変更せず別名で保存します。
+AI超解像は失われた細部を**推測して補う**もので、実際の細部の復元ではありません。CPU処理のため時間がかかり(Arm のスマホは特に遅い)、8K・16K は大量のメモリとファイルサイズが必要です。
+デスクトップ版は複数枚をまとめて処理、Android 版は1枚ずつです。Android 版は実機(moto g53y 5G、縦・横)で画面とAI超解像の動作を確認済み。Arm向けNEONカーネルにより、480×320の画像をフルHDへ拡大するAI処理は約51秒(スカラー実装の337秒から高速化)。大きな写真は数分以上かかります。
+
+**English**: Enlarge photos/images (PNG/JPEG) to Full HD / QHD (between FHD and 4K) / 4K / 5K (between 4K and 8K) / 8K / 16K frames, keeping the aspect ratio, using
+CPU AI super-resolution (Real-ESRGAN realesr-general-x4v3) plus high-quality resampling (interpolation-only is selectable). Entirely optional; the original is never modified.
+AI super-resolution guesses missing detail rather than restoring it; it is slow on the CPU (especially on Arm phones), and 8K/16K need lots of memory and disk.
+The desktop app batches several images; Android handles one at a time. The Android screen and AI path were verified on a real phone (moto g53y 5G, portrait and landscape); with the Arm NEON kernel a 480x320 image to Full HD takes about 51 s (337 s with the scalar code). Large photos take minutes or more.
+
+## AI文脈補完 / AI context completion (v1.2.0, 実験的 / experimental)
+
+**日本語**: OCRで**かすれて読めない・自信が低い1〜2文字**を、**前後の長い文脈から推測して穴埋め**します(長文の書き換えではありません)。既定はオフ(設定でオン)。
+- 対象: 信頼度の低い短い単語、文字がまるごと欠けた疑いのある隙間(CJK)、余計に挿入された1文字。
+- 方式: 形の似た字の表(日↔曰、0↔O、`.`↔`,`、キリル文字の混入など)と言語モデル自身の予測から候補を作り、**「候補+後ろの文脈」が前の文脈に続く確率(対数尤度)**を言語モデル(Qwen2.5)で採点。元の読みより十分に尤もらしいときだけ、1か所・最大2文字を直します。
+- サーバー: `aruaru-llm` の `POST /v1/ocr/fill`(`open-cuda` の Qwen にバッチ処理と候補採点API `score_continuations` / `top_next_tokens` を追加)。言語モデル(`/v1/qwen/install` → `/v1/qwen/select`)が必要で、無いときは何も変えずに進みます。OCRとは別のサーバー(手元のPCなど)も指定できます。
+- 実測(Qwen2.5-0.5B、CPU): 「私たちは**人**毎朝」→削除、「10.000円」→「10,000円」、「署名と押印」「今日」の取り違え防止などを確認。**まるごと消えた文字は文脈からの推測にとどまり**(例: 「今□は」を「今朝は」と補った。正解は「今日」)、誤ることがあります。1か所あたり数秒〜(CPU)。結果の文章は必ず確認してください。
+
+**English**: Fills in **one or two faded / unreadable characters** that OCR missed or read with low confidence, **guessing from the long surrounding context** (it never rewrites long text). Off by default.
+- Targets: short low-confidence words, suspicious gaps where a CJK character is missing, and stray single characters.
+- Method: candidates come from a table of look-alike characters (日↔曰, 0↔O, `.`↔`,`, stray Cyrillic letters, ...) and from the language model's own predictions; a language model (Qwen2.5) scores **the log-likelihood of "candidate + following text" given the preceding text**, and a change (one spot, at most two characters) is made only when clearly more likely than the original reading.
+- Server: `POST /v1/ocr/fill` in `aruaru-llm` (with batched prefill and candidate scoring APIs `score_continuations` / `top_next_tokens` added to the Qwen engine of `open-cuda`). It needs a language model installed (`/v1/qwen/install` then `/v1/qwen/select`); without one nothing is changed. A different server (e.g. your own PC) can be used for this step.
+- Measured (Qwen2.5-0.5B on CPU): removed a stray "人", fixed "10.000" to "10,000", etc. **A fully erased character is only a guess from context** (e.g. "今□は" was filled as "今朝は"; the truth was "今日") and can be wrong. Several seconds per spot on a CPU. Always check the result.
+
 ## OCR を使うには / Using OCR
 
 既定の接続先は、同じ PC で動いている `aruaru-llm`(`http://127.0.0.1:4600`)です。アプリの「OCR設定」で別の URL(LAN 内の別の端末など)に変更し、
