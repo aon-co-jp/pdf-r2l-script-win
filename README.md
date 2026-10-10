@@ -1,47 +1,71 @@
-# pdf-r2l-script-win
+# Integrated into pdf-r2l-rs / pdf-r2l-rs へ統合しました
 
-PDFを右綴じ(R2L)かつ見開き(右始まり)にする、インストーラー付き Windows 用 GUI アプリです。
-Makes PDFs right-to-left (R2L) with a two-column-right layout — a Windows GUI app with an installer.
+**English** — This repository's final, practical version is now identical to the tested release of
+[aon-co-jp/pdf-r2l-rs](https://github.com/aon-co-jp/pdf-r2l-rs) (v1.1.0 line), which unifies
+both `pdf-r2l-win` (re-implementation of INORIA/pdf-r2l-script idea) and `pdf-r2l-script-win` into one original,
+spec-based app (MIT OR Apache-2.0) for Windows / macOS / Linux / Android, with right/left/keep binding,
+OCR re-typesetting (online), searchable text, and image up-conversion. Development continues in pdf-r2l-rs;
+this repository is kept as a snapshot. The upstream license is kept as `LICENSE-upstream`.
 
-[INORIA/pdf-r2l-script](https://github.com/INORIA/pdf-r2l-script)(Python, MIT。元は hanepjiv/pdfr2l)を Rust で作り直したものです。
-元スクリプトと同じく Direction=R2L・PageLayout=TwoColumnRight を設定します
-(既存の ViewerPreferences の他項目は置き換えず保持)。「元ファイルを上書き」は `-i bak` 相当です。
+**日本語** — 本リポジトリの最終的な実用版は、試験・バグ修正・改良を重ねた
+[aon-co-jp/pdf-r2l-rs](https://github.com/aon-co-jp/pdf-r2l-rs) と同一内容です。
+`pdf-r2l-win` と `pdf-r2l-script-win` の両方を、PDF仕様書に基づく独自実装の1つのアプリ
+(MIT OR Apache-2.0、Windows/macOS/Linux/Android、右綴じ/左綴じ/元と同じ、オンラインOCRの書体文字化、
+検索可能テキスト、画像の高解像度化)に**統合**しました。今後の開発は pdf-r2l-rs で行い、
+本リポジトリはスナップショットとして残します。元リポジトリのライセンスは `LICENSE-upstream` に保存しています。
 
-## 使い方 / Usage
-`pdf-r2l-script-win-setup.exe` でインストール後、PDFを選択またはドラッグ&ドロップして「変換して保存…」。
-ライセンスはインストーラーの途中と、アプリの「ライセンス / License」ボタンで英語・日本語併記で表示されます。
+---
+
+# pdf-r2l-rs
+
+PDFの**綴じ方向(右綴じ R2L / 左綴じ L2R)**を変更し、**見開き表示**にし、スキャンしたページを **OCR して元の書体に合わせた検索できる文字に置き換える**、
+Windows / macOS / Linux(・Android)用の GUI アプリです(インストーラー付き)。Rust 製。
+
+A GUI app for Windows / macOS / Linux (and Android) that changes the **binding direction (R2L / L2R)** of PDFs, shows them as a **two-page spread**,
+and can **OCR scanned pages and replace the text with searchable text in a matching typeface**. Written in Rust, with installers.
+
+## 機能 / Features
+
+- **綴じ方向**: 右綴じ(R2L)/左綴じ(L2R)/**元と同じ**(変更しない。OCR だけ使いたいとき)。PDF の `/ViewerPreferences /Direction` を設定します。他の表示設定は保持します。
+- **見開き表示**: `/PageLayout` を `TwoColumnRight`(右綴じ)/`TwoColumnLeft`(左綴じ)にします(オフにもできます)。
+- **保存**: 別のファイルに保存(既定)/元のファイルを上書き(元は `.bak` に残します)。一時ファイル経由で保存するので、途中で失敗しても元のファイルを壊しません。
+- **OCR・テキストフォント文字化**(既定でオン、チェックを外すと元のデータのまま):
+  - ページを画像にして `aruaru-llm`(`POST /v1/ocr`、Tesseract)で OCR(複数ページをまとめて処理)。
+  - 行ごとに書体の系統(ゴシック体/明朝体)・太字・文字色・背景色を推定し、Noto フォント(Sans / Serif、日・簡・繁・韓)のサブセットを PDF に埋め込んで置き換えます。**検索・コピーができる文字**になります。
+  - 言語は **1〜12個**まで選べ(日本語・英語・中国語・韓国語・EU 言語・ロシア語・ウクライナ語・ペルシャ語・アラビア語ほか 49 言語)、**選んだ言語のデータだけ**を取得してキャッシュします。
+  - 「**元の画像はそのまま、検索用の見えない文字だけ追加**」も選べます(誤認識が心配なとき)。
+  - **オンライン環境が必要**です(OCR サーバーへ接続)。ページ画像は処理後すぐ破棄されます。OCR・書体の判定には誤りがあり得ます。
+
+## インストール / Install
+
+Releases から、お使いの OS 用のものを入手します。
+
+| OS | 配布物 |
+|---|---|
+| Windows | `pdf-r2l-rs-setup.exe`(インストーラー) |
+| macOS | `pdf-r2l-rs-*.dmg`(未署名・未公証。初回は右クリック→「開く」) |
+| Linux | `pdf-r2l-rs_*.deb`(Debian/Ubuntu 系)または `pdf-r2l-rs-x86_64.tar.gz` |
+| Android | `pdf-r2l-rs.apk`(署名済み。Android 8.0 以上。「提供元不明のアプリ」の許可が必要) |
+
+## OCR を使うには / Using OCR
+
+既定の接続先は、同じ PC で動いている `aruaru-llm`(`http://127.0.0.1:4600`)です。アプリの「OCR設定」で別の URL(LAN 内の別の端末など)に変更し、
+「接続テスト」で確認できます。サーバーには Tesseract が必要です(言語データは `aruaru-llm` が必要な言語だけ自動で取得します)。
+OCR に接続できないときは、「OCRを使わずに、綴じ方向だけ変換」で続けられます。
 
 ## 開発 / Build
+
 ```
-cargo test
-cargo build --release
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\pdf-r2l-script-win.iss
+cargo test -p pdf-r2l-core
+cargo build --release            # target/release/pdf-r2l-rs (GUI), pdf-r2l-cli (command line)
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\pdf-r2l-rs.iss   # Windows installer
 ```
-依存を変えたら `scripts/gen-third-party.ps1 > licenses/third-party.txt` の後に `sh scripts/build-licenses.sh`。
+
+コマンドライン版: `pdf-r2l-cli 入力.pdf 出力.pdf [--ltr|--keep] [--no-spread] [--ocr URL] [--lang jpn+eng] [--fast] [--search-only]`
+
+依存を変えたら `scripts/gen-third-party.ps1 > licenses/third-party.txt` の後に `sh scripts/build-licenses.sh` で `LICENSES.txt` を再生成してください。
 
 ## LICENSE
-MIT。詳細・第三者ライセンスは [LICENSES.txt](LICENSES.txt)。
 
-## OCR・テキストフォント文字化機能について / About the OCR text re-typesetting feature
-
-> **開発中(v1.0.1 で搭載予定。v1.0.0 には含まれません) / Planned for v1.0.1 (not included in v1.0.0)**
-
-### 日本語
-
-**この機能は、オンライン環境(インターネットまたはネットワーク接続)を前提とします。**
-
-- **何をする機能か**: PDF の各ページを画像として読み取り(OCR)、文字がかすれて読みにくい部分も含め、認識した全ての文字を、元の書体(ゴシック体・明朝体など)に合わせたテキストフォントの文字に置き換えます。置き換えた文字は検索・コピーができる文字データとして PDF に入ります。既定でチェックが入っており、チェックを外すと元のデータのまま表示します。
-- **なぜオンラインが必要か**: 文字の読み取り(OCR)は、`aruaru-llm`(`POST /v1/ocr`、Tesseract)に各ページの画像を送って行います。そのため、`aruaru-llm` に接続できるネットワークが必要です。また、各言語の OCR データ(日本語・英語・中国語・韓国語・ヨーロッパ諸言語・ロシア語・ウクライナ語・ペルシャ語・アラビア語など)は、必要になった時にだけ取得し、手元に保存(キャッシュ)して再利用します。初めて使う言語の取得にもネットワークが必要です。
-- **送信される内容**: OCR のために、PDF のページ画像が `aruaru-llm` へ送られます。画像は文字認識のあいだだけ使い、処理後すぐに破棄され、保存されません。機密性の高い PDF は、チェックを外して使ってください。
-- **オフラインのとき**: ネットワークに接続できない場合、この機能は使えません。チェックを外すか、従来どおり綴じ方向の変更だけを使ってください。**綴じ方向の変更(R2L/L2R)自体は、これまでどおりオフラインで動作します。**
-- **ご注意**: OCR には認識の誤りが起こり得ます。元の書体の判定(ゴシック体・明朝体など)も推定であり、完全には一致しない場合があります。重要な文書は、変換後の内容を確認してください。
-
-### English
-
-**This feature requires an online environment (an Internet or network connection).**
-
-- **What it does**: It reads each PDF page as an image (OCR) and replaces every recognized character — including faded or hard-to-read ones — with text in a font matching the original typeface style (e.g. gothic/sans-serif or mincho/serif). The replaced characters are stored in the PDF as real text, so they can be searched and copied. The option is checked by default; uncheck it to keep the original data as-is.
-- **Why it needs to be online**: OCR is performed by sending each page image to `aruaru-llm` (`POST /v1/ocr`, Tesseract), so a network connection to `aruaru-llm` is required. The OCR language data (Japanese, English, Chinese, Korean, European languages, Russian, Ukrainian, Persian, Arabic, etc.) is fetched only when needed and cached locally for reuse; fetching a language for the first time also requires a network connection.
-- **What is sent**: For OCR, the page images of the PDF are sent to `aruaru-llm`. They are used only while the text is being recognized, are discarded immediately afterwards, and are not stored. For confidential PDFs, uncheck the option.
-- **When offline**: This feature is unavailable without a network connection. Uncheck it, or use the binding-direction change alone. **Changing the binding direction (R2L/L2R) itself still works offline, as before.**
-- **Notes**: OCR can make recognition errors, and the detection of the original typeface style (gothic, mincho, etc.) is an estimate that may not match exactly. Please check the converted result for important documents.
+独自実装です。綴じ方向の書き換えは PDF の仕様書(ISO 32000-1)だけを根拠に書いています。
+**MIT または Apache-2.0**(どちらかを選べます)。第三者ライセンスは [LICENSES.txt](LICENSES.txt)(英日併記)。

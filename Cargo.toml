@@ -1,14 +1,19 @@
-[package]
-name = "pdf-r2l-script-win"
-version = "1.0.0"
-edition = "2021"
-license = "MIT"
-description = "PDFを右綴じ(R2L・見開き右)にするWindows GUIアプリ"
+[workspace]
+members = ["crates/pdf-r2l-core", "crates/pdf-r2l-desktop", "crates/pdf-r2l-cli", "crates/pdf-r2l-android"]
+resolver = "2"
 
-[dependencies]
+[workspace.package]
+version = "1.0.3"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aon-co-jp/pdf-r2l-rs"
+authors = ["aon-co-jp"]
+
+[workspace.dependencies]
+# OCR・テキストフォント文字化・ページ描画の共有クレート(RPoem)。rev で固定する。
+open-runo-pdf-ocr = { git = "https://github.com/aon-co-jp/RPoem", rev = "950f3be40f8c20d5a7389155a6c6307702683868" }
 lopdf = "0.34"
-eframe = "0.29"
-rfd = "0.15"
+open-runo-sr = { git = "https://github.com/aon-co-jp/RPoem", rev = "950f3be40f8c20d5a7389155a6c6307702683868" }
 
 [profile.release]
 opt-level = "s"
