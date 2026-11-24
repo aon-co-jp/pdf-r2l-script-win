@@ -1,3 +1,5 @@
+> Latest translations / 翻訳の最新版: [0-LATEST-TRANSLATIONS.md](0-LATEST-TRANSLATIONS.md)
+
 # Integrated into pdf-r2l-rs / pdf-r2l-rs へ統合しました
 
 **English** — This repository's final, practical version is now identical to the tested release of
